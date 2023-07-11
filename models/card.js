@@ -7,26 +7,16 @@ const cardSchema = new mongoose.Schema({
     minLength: 2,
     maxLength: 30,
     required: true,
-    validate: {
-      validator(v) {
-        if (v > 2 && v < 30) {
-          return v;
-        }
-        return 'Строка должна содержать от 2 до 30 символов.';
-      },
-    },
   },
   link: {
     type: String,
     required: true,
     validate: {
       validator(url) {
-        if (validator.isURL(url)) {
-          return url;
-        }
-
-        return 'Передана некорректная ссылка';
+        return /https?:\/\/(www\.)?[a-zA-Z0-9-._~:/?#\[\]@!\$&'()*+,;=]*\.(com|net|org|ru)(#.+)?$/.test(url);
       },
+
+      message: 'Передана некорректная ссылка',
     },
   },
   owner: {
