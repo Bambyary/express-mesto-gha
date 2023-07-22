@@ -31,26 +31,26 @@ app.use(cookieParser());
 app.use(bodyParser.json());
 app.post('/signin', celebrate({
   body: Joi.object().keys({
-    email: Joi.string().required(),
-    password: Joi.string().required(true).min(8),
+    email: Joi.string().required().email(),
+    password: Joi.string().required().min(8),
   }),
 }), login);
 app.post('/signup', celebrate({
   body: Joi.object().keys({
     name: Joi.string().min(2).max(30),
     about: Joi.string().min(2).max(30),
-    avatar: Joi.string(),
-    email: Joi.string().required(true),
-    password: Joi.string().required(true).min(8),
+    avatar: Joi.string().pattern(/https?:\/\/(www\.)?[a-zA-Z0-9-._~:/?#\[\]@!\$&'()*+,;=]*\.(com|net|org|ru|png)(#.+)?$/),
+    email: Joi.string().required().email(),
+    password: Joi.string().required().min(8),
   }),
 }), createUser);
 app.use(auth);
 app.use('/', userRoutes);
 app.use('/', cardRoutes);
-app.use(errors());
 app.use('*', (_req, _res, next) => {
   next(new NotFound('Страница не найдена'));
 });
+app.use(errors());
 // eslint-disable-next-line no-unused-vars
 app.use((err, _req, res, _next) => res.status(err.statusCode).send({ message: err.message }));
 

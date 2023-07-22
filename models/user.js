@@ -1,53 +1,40 @@
 const mongoose = require('mongoose');
-const validator = require('validator');
 /* eslint-disable import/no-extraneous-dependencies */
 const bcrypt = require('bcryptjs');
-const { BadRequest } = require('../errors/BadRequest');
+const validator = require('validator');
+const Unauthorized = require('../errors/Unauthorized');
 
 const userSchema = new mongoose.Schema({
   name: {
     type: String,
     minLength: 2,
     maxLength: 30,
-    role: {
-      type: String,
-      default: 'Жак-Ив Кусто',
-    },
+    default: 'Жак-Ив Кусто',
   },
   about: {
     type: String,
     minLength: 2,
     maxLength: 30,
-    role: {
-      type: String,
-      default: 'Исследователь',
-    },
+    default: 'Исследователь',
   },
   avatar: {
     type: String,
-    role: {
-      type: String,
-      default: 'https://pictures.s3.yandex.net/resources/jacques-cousteau_1604399756.png',
-    },
     validate: {
       validator(url) {
-        if (validator.isURL(url)) {
-          return url;
-        }
-
-        return 'Передана некорректная ссылка';
+        return /https?:\/\/(www\.)?[a-zA-Z0-9-._~:/?#\[\]@!\$&'()*+,;=]*\.(com|net|org|ru|png)(#.+)?$/.test(url);
       },
+      message: 'Передана некорректная ссылка',
     },
+    default: 'https://pictures.s3.yandex.net/resources/jacques-cousteau_1604399756.png',
   },
   email: {
     type: String,
     required: true,
     unique: true,
     validate: {
-      validator(url) {
-        return /https?:\/\/(www\.)?[a-zA-Z0-9-._~:/?#\[\]@!\$&'()*+,;=]*\.(com|net|org|ru)(#.+)?$/.test(url);
+      validator(email) {
+        return validator.isEmail(email);
       },
-
       message: 'Передан некорректный email.',
     },
   },
@@ -59,18 +46,18 @@ const userSchema = new mongoose.Schema({
   },
 });
 
-userSchema.statics.findUserByCredentials = function (email, password) {
+userSchema.statics.findUserByCredentials = function (email, password, next) {
   return this.findOne({ email }).select('+password')
   // eslint-disable-next-line consistent-return
     .then((user) => {
       if (!user) {
-        throw new BadRequest('Неправильные почта или пароль');
+        return next(new Unauthorized('Неправильные почта или пароль'));
       }
 
       return bcrypt.compare(password, user.password)
         .then((matched) => {
           if (!matched) {
-            throw new BadRequest('Неправильные почта или пароль');
+            return next(new Unauthorized('Неправильные почта или пароль'));
           }
 
           return user;

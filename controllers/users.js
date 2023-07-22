@@ -9,27 +9,32 @@ const BadRequest = require('../errors/BadRequest');
 const Conflict = require('../errors/Conflict');
 const InternalServerError = require('../errors/InternalServerError');
 const NotFound = require('../errors/NotFound');
+const Unauthrized = require('../errors/Unauthorized');
 
 const login = (req, res, next) => {
   const { email, password } = req.body;
 
   return User.findUserByCredentials(email, password)
     .then((user) => {
-      const token = jwt.sign({ _id: user._id }, JWT_SECRET);
-      res.cookie('jwt', token, {
-        maxAge: 3600000 * 24 * 7,
-        httpOnly: true,
-        sameSite: true,
-      }).send({ token });
+      if (user) {
+        const token = jwt.sign({ _id: user._id }, JWT_SECRET);
+        res.cookie('jwt', token, {
+          maxAge: 3600000 * 24 * 7,
+          httpOnly: true,
+          sameSite: true,
+        }).status(200).send({ token });
+      }
+
+      throw new Unauthrized('Неправильные почта или пароль');
     })
     .catch(() => {
-      next(new InternalServerError('Неправильные почта или пароль'));
+      next(new Unauthrized('Неправильные почта или пароль'));
     });
 };
 
 const getUser = (_req, res, next) => {
   User.find({})
-    .then((users) => res.send(users))
+    .then((user) => res.status(200).send({ user }))
     .catch(() => {
       next(new InternalServerError('Внутренняя ошибка сервера.'));
     });
@@ -38,7 +43,7 @@ const getUser = (_req, res, next) => {
 const getUserById = (req, res, next) => {
   User.findById(req.params.userId)
     .orFail()
-    .then((user) => res.send({ data: user }))
+    .then((user) => res.status(200).send({ user }))
     // eslint-disable-next-line consistent-return
     .catch((err) => {
       if (err.name === 'CastError') {
@@ -52,7 +57,11 @@ const getUserById = (req, res, next) => {
 const getUserInfo = (req, res, next) => {
   User.findById(req.user._id)
     .orFail()
-    .then((user) => res.send({ data: user }))
+    .then((user) => res.send({
+      data: {
+        email: user.email, name: user.name, about: user.about, avatar: user.avatar, _id: user._id,
+      },
+    }))
     .catch((err) => {
       if (err.name === 'CastError') {
         next(new BadRequest('Передача некорректных данных при поиске пользователя'));
@@ -64,27 +73,25 @@ const getUserInfo = (req, res, next) => {
 
 const createUser = (req, res, next) => {
   const {
+    email,
+    password,
     name,
     about,
     avatar,
-    email,
-    password,
   } = req.body;
 
-  bcrypt.hash(password, 10)
+  return bcrypt.hash(password, 10)
     .then((hash) => User.create({
-      name,
-      about,
-      avatar,
-      email,
-      password: hash,
+      email, password: hash, name, about, avatar,
     }))
-    .then((user) => res.send({ data: user }))
-    // eslint-disable-next-line consistent-return
+    .then(() => res.status(201).send({
+      email, name, about, avatar,
+    }))
     .catch((err) => {
       if (err.code === 11000) {
         next(new Conflict('Пользователь с таким email уже существует.'));
       }
+
       if (err.name === 'ValidationError') {
         next(new BadRequest('Переданы некорректные данные при создании пользователя.'));
       }
@@ -94,14 +101,13 @@ const createUser = (req, res, next) => {
 };
 
 const updateUser = (req, res, next) => {
-  console.log(req);
   User.findByIdAndUpdate(
     req.user._id,
     { name: req.body.name, about: req.body.about },
     { new: true, runValidators: true },
   )
     .orFail()
-    .then((user) => res.send({ data: user }))
+    .then((user) => res.status(200).send({ user }))
     // eslint-disable-next-line consistent-return
     .catch((err) => {
       if (err.name === 'ValidationError') {
@@ -123,7 +129,7 @@ const updateAvatar = (req, res, next) => {
     { new: true, runValidators: true },
   )
     .orFail()
-    .then((user) => res.send({ data: user }))
+    .then((user) => res.status(200).send({ user }))
     // eslint-disable-next-line consistent-return
     .catch((err) => {
       if (err.name === 'ValidationError') {

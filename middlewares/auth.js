@@ -10,7 +10,7 @@ module.exports.auth = (req, _res, next) => {
   const { authorization } = req.headers;
 
   if (!authorization || !authorization.startsWith('Bearer')) {
-    throw new Unauthorized('Необходима авторизация.');
+    return next(new Unauthorized('Неправильные почта или пароль.'));
   }
 
   const token = authorization.replace('Bearer ', '');
@@ -19,10 +19,9 @@ module.exports.auth = (req, _res, next) => {
   try {
     payload = jwt.verify(token, JWT_SECRET);
   } catch (err) {
-    next(new Unauthorized('Необходима авторизация.'));
+    return next(new Unauthorized('Неправильные почта или пароль.'));
   }
 
   req.user = payload;
-
-  next();
+  return next();
 };

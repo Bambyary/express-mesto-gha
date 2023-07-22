@@ -12,8 +12,8 @@ const { celebrate, Joi } = require('celebrate');
 router.get('/cards', getCards);
 router.post('/cards', celebrate({
   body: Joi.object().keys({
-    name: Joi.string().required(true).min(2).max(30),
-    link: Joi.string().required(true),
+    name: Joi.string().required().min(2).max(30),
+    link: Joi.string().required().pattern(/https?:\/\/(www\.)?[a-zA-Z0-9-._~:/?#\[\]@!\$&'()*+,;=]*\.(com|net|org|ru|png)(#.+)?$/),
   }).unknown(true),
 }), createCard);
 router.delete('/cards/:cardId', celebrate({
