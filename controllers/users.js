@@ -7,7 +7,6 @@ const { JWT_SECRET } = require('../models/config');
 /* eslint-disable import/no-extraneous-dependencies */
 const BadRequest = require('../errors/BadRequest');
 const Conflict = require('../errors/Conflict');
-const InternalServerError = require('../errors/InternalServerError');
 const NotFound = require('../errors/NotFound');
 const Unauthrized = require('../errors/Unauthorized');
 
@@ -27,17 +26,13 @@ const login = (req, res, next) => {
 
       throw new Unauthrized('Неправильные почта или пароль');
     })
-    .catch(() => {
-      next(new Unauthrized('Неправильные почта или пароль'));
-    });
+    .catch((err) => next(err));
 };
 
 const getUser = (_req, res, next) => {
   User.find({})
     .then((user) => res.status(200).send({ user }))
-    .catch(() => {
-      next(new InternalServerError('Внутренняя ошибка сервера.'));
-    });
+    .catch((err) => next(err));
 };
 
 const getUserById = (req, res, next) => {
@@ -47,10 +42,10 @@ const getUserById = (req, res, next) => {
     // eslint-disable-next-line consistent-return
     .catch((err) => {
       if (err.name === 'CastError') {
-        next(new BadRequest('Передача некорректных данных при поиске пользователя'));
+        return next(new BadRequest('Передача некорректных данных при поиске пользователя'));
       }
 
-      next(new NotFound('Пользователь в базе данных не найден.'));
+      return next(new NotFound('Пользователь в базе данных не найден.'));
     });
 };
 
@@ -64,10 +59,10 @@ const getUserInfo = (req, res, next) => {
     }))
     .catch((err) => {
       if (err.name === 'CastError') {
-        next(new BadRequest('Передача некорректных данных при поиске пользователя'));
+        return next(new BadRequest('Передача некорректных данных при поиске пользователя'));
       }
 
-      next(new NotFound('Пользователь в базе данных не найден.'));
+      return next(new NotFound('Пользователь в базе данных не найден.'));
     });
 };
 
@@ -89,14 +84,14 @@ const createUser = (req, res, next) => {
     }))
     .catch((err) => {
       if (err.code === 11000) {
-        next(new Conflict('Пользователь с таким email уже существует.'));
+        return next(new Conflict('Пользователь с таким email уже существует.'));
       }
 
       if (err.name === 'ValidationError') {
-        next(new BadRequest('Переданы некорректные данные при создании пользователя.'));
+        return next(new BadRequest('Переданы некорректные данные при создании пользователя.'));
       }
 
-      next(new InternalServerError('На сервере произошла ошибка.'));
+      return next(err);
     });
 };
 
@@ -111,14 +106,14 @@ const updateUser = (req, res, next) => {
     // eslint-disable-next-line consistent-return
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        next(new BadRequest('Переданы некорректные данные при обновлении профиля.'));
+        return next(new BadRequest('Переданы некорректные данные при обновлении профиля.'));
       }
 
       if (err.name === 'DocumentNotFoundError') {
-        next(new NotFound('Пользователь с указанным _id не найден.'));
+        return next(new NotFound('Пользователь с указанным _id не найден.'));
       }
 
-      next(new InternalServerError('На сервере произошла ошибка.'));
+      return next(err);
     });
 };
 
@@ -133,14 +128,14 @@ const updateAvatar = (req, res, next) => {
     // eslint-disable-next-line consistent-return
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        next(new BadRequest('Переданы некорректные данные при обновлении аватара.'));
+        return next(new BadRequest('Переданы некорректные данные при обновлении аватара.'));
       }
 
       if (err.name === 'DocumentNotFoundError') {
-        next(new NotFound('Пользователь с указанным _id не найден.'));
+        return next(new NotFound('Пользователь с указанным _id не найден.'));
       }
 
-      next(new InternalServerError('На сервере произошла ошибка.'));
+      return next(err);
     });
 };
 

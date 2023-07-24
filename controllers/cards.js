@@ -1,15 +1,12 @@
 const Card = require('../models/card');
 const BadRequest = require('../errors/BadRequest');
 const Forbidden = require('../errors/Forbidden');
-const InternalServerError = require('../errors/InternalServerError');
 const NotFound = require('../errors/NotFound');
 
 const getCards = (_req, res, next) => {
   Card.find({})
     .then((card) => res.status(200).send({ data: card }))
-    .catch(() => {
-      next(new InternalServerError('На сервере произошла ошибка.'));
-    });
+    .catch((err) => next(err));
 };
 
 const createCard = (req, res, next) => {
@@ -20,10 +17,10 @@ const createCard = (req, res, next) => {
     .then((card) => res.status(201).send({ data: card }))
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        next(new BadRequest('Переданы некорректные данные при создании карточки.'));
+        return next(new BadRequest('Переданы некорректные данные при создании карточки.'));
       }
 
-      next(new InternalServerError('На сервере произошла ошибка.'));
+      return next(err);
     });
 };
 
@@ -40,14 +37,13 @@ const deleteCard = (req, res, next) => {
         return next(new Forbidden('Вы не можете удалить чужую карточку.'));
       }
 
-      Card.findByIdAndRemove(req.params.cardId).then((data) => res.status(200).send({ data }));
+      Card.deleteOne(card).then(() => res.status(200).send({ card }));
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        next(new BadRequest('Карточка с указанным _id не найдена.'));
-      } else {
-        next(new InternalServerError('На сервере произошла ошибка.'));
+        return next(new BadRequest('Карточка с указанным _id не найдена.'));
       }
+      return next(err);
     });
 };
 
@@ -61,13 +57,12 @@ const addCardLike = (req, res, next) => {
     .then((like) => res.status(201).send({ data: like }))
     .catch((err) => {
       if (err.name === 'DocumentNotFoundError') {
-        next(new NotFound('Переданы некорректные данные.'));
+        return next(new NotFound('Переданы некорректные данные.'));
       }
       if (err.name === 'CastError') {
-        next(new BadRequest('Передан несуществующий _id карточки. '));
-      } else {
-        next(new InternalServerError('На сервере произошла ошибка.'));
+        return next(new BadRequest('Передан несуществующий _id карточки. '));
       }
+      return next(err);
     });
 };
 
@@ -81,13 +76,12 @@ const deleteCardLike = (req, res, next) => {
     .then((like) => res.status(200).send({ data: like }))
     .catch((err) => {
       if (err.name === 'DocumentNotFoundError') {
-        next(new NotFound('Переданы некорректные данные.'));
+        return next(new NotFound('Переданы некорректные данные.'));
       }
       if (err.name === 'CastError') {
-        next(new BadRequest('Передан несуществующий _id карточки. '));
-      } else {
-        next(new InternalServerError('На сервере произошла ошибка.'));
+        return next(new BadRequest('Передан несуществующий _id карточки. '));
       }
+      return next(err);
     });
 };
 

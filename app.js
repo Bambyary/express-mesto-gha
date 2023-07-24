@@ -12,6 +12,8 @@ const cardRoutes = require('./routes/cards');
 const { login, createUser } = require('./controllers/users');
 const { auth } = require('./middlewares/auth');
 const NotFound = require('./errors/NotFound');
+const { regExp } = require('./utils/constants');
+const { errorHeandler } = require('./middlewares/errorHeandler');
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, max: 100, standardHeaders: true, legacyHeaders: false,
@@ -39,7 +41,7 @@ app.post('/signup', celebrate({
   body: Joi.object().keys({
     name: Joi.string().min(2).max(30),
     about: Joi.string().min(2).max(30),
-    avatar: Joi.string().pattern(/https?:\/\/(www\.)?[a-zA-Z0-9-._~:/?#\[\]@!\$&'()*+,;=]*\.(com|net|org|ru|png)(#.+)?$/),
+    avatar: Joi.string().pattern(regExp),
     email: Joi.string().required().email(),
     password: Joi.string().required().min(8),
   }),
@@ -51,8 +53,7 @@ app.use('*', (_req, _res, next) => {
   next(new NotFound('Страница не найдена'));
 });
 app.use(errors());
-// eslint-disable-next-line no-unused-vars
-app.use((err, _req, res, _next) => res.status(err.statusCode).send({ message: err.message }));
+app.use(errorHeandler);
 
 app.listen(PORT, () => {
   console.log(`App listening on port ${PORT}`);
